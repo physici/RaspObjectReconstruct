@@ -1,15 +1,21 @@
-from picamera.array import PiRGBArray
-from picamera import PiCamera
-import time
 import cv2
 
-camera = PiCamera()
-rawCapture = PiRGBArray(camera)
+# Video source - can be camera index number given by 'ls /dev/video*
+# or can be a video file, e.g. '~/Video.avi'
+cap = cv2.VideoCapture(0)
 
-time.sleep(0.1)
+while(True):
+    # Capture frame-by-frame
+    ret, frame = cap.read()
 
-camera.capture(rawCapture, format='bgr')
-image = rawCapture.array
+    # Our operations on the frame come here
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-cv2.imshow('Image', image)
-cv2.waitKey(0)
+    # Display the resulting frame
+    cv2.imshow('frame',gray)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# When everything done, release the capture
+cap.release()
+cv2.destroyAllWindows()
