@@ -9,6 +9,12 @@ date:   Feb. 23, 2020
 import time
 import RPi.GPIO as GPIO
 
+# change the following constants according to hardware
+# see https://www.element14.com/community/docs/DOC-92640/l/raspberry-pi-4-model-b-default-gpio-pinout-with-poe-header
+PIN_STEP = 32
+PIN_DIRECTION = 36
+PIN_ENABLE_MOTOR = 40
+
 class Motor():
     """
     Class that allows control of the motor.
@@ -23,14 +29,10 @@ class Motor():
             raise RuntimeError('Cannot create another instance')
         self.__class__._has_instance = True
 
-        # set Pin configuration names
-        # see https://www.element14.com/community/docs/DOC-92640/l/raspberry-pi-4-model-b-default-gpio-pinout-with-poe-header
-        self._pin_step = 32
-        self._pin_direction = 36
-        self._pin_enable_motor = 40
-
+        # allocate hardware ressources
         self.open()
 
+        # motor is off
         self._enabled = False
 
         print('Setup done.')
@@ -54,9 +56,9 @@ class Motor():
         GPIO.setmode(GPIO.BOARD)
 
         # setup the hardware, initial low
-        GPIO.setup(self._pin_direction, GPIO.OUT, initial=GPIO.LOW)
-        GPIO.setup(self._pin_step, GPIO.OUT, initial=GPIO.LOW)
-        GPIO.setup(self._pin_enable_motor, GPIO.OUT, initial=GPIO.LOW)
+        GPIO.setup(PIN_DIRECTION, GPIO.OUT, initial=GPIO.LOW)
+        GPIO.setup(PIN_STEP, GPIO.OUT, initial=GPIO.LOW)
+        GPIO.setup(PIN_ENABLE_MOTOR, GPIO.OUT, initial=GPIO.LOW)
 
     def close(self):
         """
@@ -64,21 +66,23 @@ class Motor():
         """
         # Hardware ressources need to be released properly.
         print('Closing hardware connections')
-        GPIO.cleanup()
+        GPIO.cleanup(PIN_STEP)
+        GPIO.cleanup(PIN_DIRECTION)
+        GPIO.cleanup(PIN_ENABLE_MOTOR)
 
     def motor_enable(self):
         """
         Enable the motor
         """
         self._enabled = True
-        GPIO.output(self._pin_enable_motor, GPIO.HIGH)
+        GPIO.output(PIN_ENABLE_MOTOR, GPIO.HIGH)
 
     def motor_disable(self):
         """
         Disable the motor
         """
         self._enabled = False
-        GPIO.output(self._pin_enable_motor, GPIO.LOW)
+        GPIO.output(PIN_ENABLE_MOTOR, GPIO.LOW)
 
     @property
     def motor_is_enabled(self):
@@ -99,31 +103,31 @@ class Motor():
         # check motor enabled
         if self.motor_is_enabled:
             # get current direction
-            tmp = int(GPIO.input(self._pin_direction))
+            tmp = int(GPIO.input(PIN_DIRECTION))
             # print('Current direction: {}'.format(tmp))
             # move in same direction as before when not specified
             if not direction:
-                GPIO.output(self._pin_step, GPIO.HIGH)
+                GPIO.output(PIN_STEP, GPIO.HIGH)
                 time.sleep(0.1)
-                GPIO.output(self._pin_step, GPIO.LOW)
+                GPIO.output(PIN_STEP, GPIO.LOW)
                 time.sleep(0.5)
             # use direction given
             else:
                 # same direction as before
                 if direction == tmp:
-                    GPIO.output(self._pin_step, GPIO.HIGH)
+                    GPIO.output(PIN_STEP, GPIO.HIGH)
                     time.sleep(0.1)
-                    GPIO.output(self._pin_step, GPIO.LOW)
+                    GPIO.output(PIN_STEP, GPIO.LOW)
                     time.sleep(0.5)
                 # the other direction, but direction is resetted afterwards
                 else:
                     # print('Turning in direction: {}'.format(direction))
-                    GPIO.output(self._pin_direction, direction)
-                    GPIO.output(self._pin_step, GPIO.HIGH)
+                    GPIO.output(PIN_DIRECTION, direction)
+                    GPIO.output(PIN_STEP, GPIO.HIGH)
                     time.sleep(0.1)
-                    GPIO.output(self._pin_step, GPIO.LOW)
+                    GPIO.output(PIN_STEP, GPIO.LOW)
                     time.sleep(0.5)
-                    GPIO.output(self._pin_direction, tmp)
+                    GPIO.output(PIN_DIRECTION, tmp)
         else:
             print('Motor is not enabled')
 
@@ -137,7 +141,7 @@ class Motor():
         int
             Motor direction (level of corresponding pin)
         """
-        return int(GPIO.input(self._pin_direction))
+        return int(GPIO.input(PIN_DIRECTION))
 
     @motor_direction.setter
     def motor_direction(self, direction):
@@ -149,4 +153,4 @@ class Motor():
         direction : int
             Direction the motor should turn
         """
-        GPIO.output(self._pin_direction, direction)
+        GPIO.output(PIN_DIRECTION, direction)
