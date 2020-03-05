@@ -8,6 +8,7 @@ date:   Feb. 23, 2020
 
 import time
 import RPi.GPIO as GPIO
+import serial
 
 # change the following constants according to hardware
 # see https://www.element14.com/community/docs/DOC-92640/l/raspberry-pi-4-model-b-default-gpio-pinout-with-poe-header
@@ -34,6 +35,18 @@ class Motor():
 
         # motor is off
         self._enabled = False
+
+        self._ser = serial.Serial('/dev/ttyAMA0', baudrate=9600,
+                                  parity=serial.PARITY_NONE,
+                                  stopbits=serial.STOPBITS_ONE,
+                                  bytesize=serial.EIGHTBITS)
+
+        # command to disable microstep
+        command = [1, 5, 140, 0, 0, 0, 0]
+        self._write_command(command)
+
+        # check status
+        self._read_command()
 
         print('Setup done.')
 
@@ -154,3 +167,39 @@ class Motor():
             Direction the motor should turn
         """
         GPIO.output(PIN_DIRECTION, direction)
+
+    def _write_command(self, command):
+        """
+        Write es command given to the serial port.
+
+        Parameters
+        ----------
+        command : list
+            command list given es integers
+        """
+        tmp = command
+        # convert the command to bytes
+        command_bytes = serial.to_bytes(tmp)
+        # calculate the checksum
+        checksum = command_bytes[0]
+        for i in range (1, len(command_bytes)):
+            checksum += command_bytes[i]
+        # add the checksum and convert to bytes again
+        tmp.append(checksum)
+        command_bytes = serial.to_bytes(tmp)
+
+        # send to serial
+        if not self._ser.is_open:
+            self._ser.open()
+
+        self._ser.write(command_bytes)
+
+    def _read_command(self):
+        """
+        Reads the serial port
+        """
+        if not self._ser.is_open:
+            self._ser.open()
+
+        response = self._ser.read(8)
+        print(response)
