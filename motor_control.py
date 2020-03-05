@@ -79,6 +79,7 @@ class Motor():
         """
         # Hardware ressources need to be released properly.
         print('Closing hardware connections')
+        self.motor_disable()
         GPIO.cleanup(PIN_STEP)
         GPIO.cleanup(PIN_DIRECTION)
         GPIO.cleanup(PIN_ENABLE_MOTOR)
